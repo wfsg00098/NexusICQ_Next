@@ -1,0 +1,29 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="NexusICQ_Next.jar">
+    <output-path>$USER_HOME$/Desktop</output-path>
+    <root id="archive" name="NexusICQ_Next.jar">
+      <element id="module-output" name="NexusICQ_Next" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/ezmorph-1.0.6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-lang-2.6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/json-lib-2.4-jdk15.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-logging-1.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-beanutils-1.9.3.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-collections-3.2.2.jar" path-in-jar="/" />
+      <element id="directory" name="background">
+        <element id="dir-copy" path="$PROJECT_DIR$/background" />
+      </element>
+      <element id="directory" name="button">
+        <element id="dir-copy" path="$PROJECT_DIR$/button" />
+      </element>
+      <element id="directory" name="main_icon">
+        <element id="dir-copy" path="$PROJECT_DIR$/main_icon" />
+      </element>
+      <element id="directory" name="new_info">
+        <element id="dir-copy" path="$PROJECT_DIR$/new_info" />
+      </element>
+      <element id="directory" name="person_info">
+        <element id="dir-copy" path="$PROJECT_DIR$/person_info" />
+      </element>
+    </root>
+  </artifact>
+</component>
