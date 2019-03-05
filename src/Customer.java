@@ -14,8 +14,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 class Customer {
-    private Base64.Decoder decoder = Base64.getDecoder();
-    private Base64.Encoder encoder = Base64.getEncoder();
+    private Base64.Encoder encoder = Base64.getUrlEncoder();
+    private Base64.Decoder decoder = Base64.getUrlDecoder();
     static Map<String, ChatWindow> windows = new HashMap<>();
     static Map<String, ChatWindow> groupwindows = new HashMap<>();
     Map<String, String> usernames = new HashMap<>();
@@ -497,7 +497,6 @@ class Customer {
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
-            System.out.println(op);
             if (op == 0) {
                 JSONObject js1 = new JSONObject();
                 js1.put("type", "AgreeAdd");

@@ -19,8 +19,8 @@ class ChatWindow {
     private String nickname;
     private String email;
     private String bio;
-    private Base64.Encoder encoder = Base64.getEncoder();
-    private Base64.Decoder decoder = Base64.getDecoder();
+    private Base64.Encoder encoder = Base64.getUrlEncoder();
+    private Base64.Decoder decoder = Base64.getUrlDecoder();
     private JPanel plSend = new JPanel();
     private JTextArea sendMsg = new JTextArea();//发消息的文本栏
     private JButton btnSend = new JButton("发送消息");

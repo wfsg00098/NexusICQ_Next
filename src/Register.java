@@ -11,7 +11,7 @@ class Register {
     private JTextField name; //放昵称的文本条
     private JTextField username;//放用户名的文本条
     private JTextField email;//放email的文本条
-    private Base64.Encoder encoder = Base64.getEncoder();
+    private Base64.Encoder encoder = Base64.getUrlEncoder();
 
     Register() {
         JFrame jframe = new JFrame();
