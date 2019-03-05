@@ -6,18 +6,23 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
+import java.net.Socket;
+import java.text.DecimalFormat;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
 class Customer {
     private Base64.Decoder decoder = Base64.getDecoder();
+    private Base64.Encoder encoder = Base64.getEncoder();
     static Map<String, ChatWindow> windows = new HashMap<>();
+    static Map<String, ChatWindow> groupwindows = new HashMap<>();
     Map<String, String> usernames = new HashMap<>();
+    Map<String, String> groupnames = new HashMap<>();
+
     private JFrame jframe;
     private JPanel plAll = new JPanel();
-    private static List allChat = new List();
 
     private JPanel plOne = new JPanel();
     private static List oneChat = new List();
@@ -25,7 +30,6 @@ class Customer {
     private JPanel plSend = new JPanel(new BorderLayout());
     private JTextArea sendMsg = new JTextArea();
     private JButton btnSend = new JButton("发送");
-    private JButton sendAll = new JButton("创建全体消息");
     private JPanel plSearch = new JPanel();
 
     private JPanel plUser_msg = new JPanel();
@@ -33,9 +37,61 @@ class Customer {
 
     static JList userList;
     static DefaultListModel listModel;
-    static int j = 0; // 列表项
+    static JList groupList;
+    static DefaultListModel grouplistmodel;
     private JScrollPane js;
-    private final JTextField search = new JTextField();//搜索功能的文本框
+    private JTextField search = new JTextField();
+
+    class FileRecv extends JFrame implements Runnable {
+        JProgressBar bar;
+        File file;
+        long length;
+
+        FileRecv(File file, long length) {
+            this.file = file;
+            this.length = length;
+            setLayout(null);
+            bar = new JProgressBar();
+            bar.setMaximum(100);
+            bar.setMinimum(0);
+        }
+
+        @Override
+        public void run() {
+            try {
+                setBackground(Color.WHITE);
+                setUndecorated(true);
+                setSize(210, 30);
+                bar.setBounds(5, 5, 200, 20);
+                add(bar);
+                setVisible(true);
+                setLocationRelativeTo(null);
+                Socket FileRecv = new Socket(Settings.SERVERADDRESS, Settings.FILE_RECEIVE_PORT);
+                DataInputStream dis = new DataInputStream(FileRecv.getInputStream());
+                DataOutputStream dos = new DataOutputStream(new FileOutputStream(file));
+                byte[] buffer = new byte[Settings.BUFFER_SIZE];
+                while (true) {
+                    int read;
+                    long recved = 0;
+                    read = dis.read(buffer);
+                    if (read == -1) {
+                        break;
+                    }
+                    dos.write(buffer, 0, read);
+                    dos.flush();
+                    recved += read;
+                    bar.setValue((int) ((recved / length) * 100));
+                }
+                dis.close();
+                dos.close();
+                FileRecv.close();
+                JOptionPane.showMessageDialog(this, "文件已成功接收到" + file.getAbsolutePath(), "文件传输成功", JOptionPane.INFORMATION_MESSAGE);
+                dispose();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
 
     Customer() {
@@ -55,7 +111,7 @@ class Customer {
             }
 
         } else {
-            JOptionPane.showMessageDialog(null, "接收到未知JSON\n" + result.toString(), "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "服务器返回未知消息\n" + result.toString(), "错误", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -64,6 +120,7 @@ class Customer {
         search.setBackground(Color.WHITE);
         search.setColumns(10);
 
+
         jframe = new JFrame();
         BgWindow.WidnowBackground(jframe);
 
@@ -71,15 +128,15 @@ class Customer {
         plSend.add(sendMsg, BorderLayout.CENTER);
         plSend.add(btnSend, BorderLayout.EAST);
         plUser_msg.setBackground(Color.WHITE);
-        plUser_msg.setBounds(0, 0, 181, 392);
+        plUser_msg.setBounds(0, 0, 181, 422);
         plUser_msg.setLayout(null);
         plOne.setBackground(Color.WHITE);
-        plOne.setBounds(380, 0, 200, 392);
+        plOne.setBounds(380, 0, 200, 422);
         plOne.setLayout(null);
         oneChat.setEnabled(false);
         oneChat.setBackground(Color.WHITE);
         oneChat.select(-1);
-        oneChat.setBounds(30, 180, 203, 283);
+        oneChat.setBounds(30, 180, 203, 313);
         oneChat.add("");
         oneChat.add("账号：" + Control.username);
         oneChat.add("");
@@ -97,32 +154,21 @@ class Customer {
 
         plOne.add(label);
         plAll.setBackground(Color.WHITE);
-        plAll.setBounds(181, 0, 200, 392);
+        plAll.setBounds(0, 0, 200, 422);
         plAll.setLayout(null);
-        allChat.setMultipleMode(true);
-        allChat.setBounds(0, 22, 269, 495);
-        plAll.add(allChat);
 
-        JLabel label_1 = new JLabel("全体消息记录");
-        label_1.setForeground(Color.DARK_GRAY);
-        label_1.setBackground(Color.WHITE);
-        label_1.setBounds(0, 1, 93, 22);
-        plAll.add(label_1);
-
-        sendAll.setBounds(0, 518, 269, 33);
-        sendAll.setActionCommand("all");
-        plAll.add(sendAll);
         jframe.getContentPane().setLayout(null);
 
         tabView(); // 选项卡布局
         ListView(); // 好友列表布局
+        GroupView();
 
         jframe.setSize(300, 633);
         jframe.setVisible(true);
         jframe.setResizable(false);
         jframe.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         jframe.setTitle(Control.nickname);
-        jframe.setLocation(950, 50);
+        jframe.setLocationRelativeTo(null);
         jframe.addWindowListener(new WindowListener() {
             public void windowIconified(WindowEvent arg0) {
                 jframe.dispose();
@@ -160,6 +206,7 @@ class Customer {
         });
         mini();
         GetFriend();
+        GetGroup();
         Control.started = true;
     }
 
@@ -171,11 +218,11 @@ class Customer {
         tab.setBounds(5, 0, 274, 594);
 
         Icon icon_chat = new ImageIcon("main_icon/main_icon_chat2.jpg");
-        //Icon icon_all = new ImageIcon("main_icon/main_icon_all.jpg");
+        Icon icon_all = new ImageIcon("main_icon/main_icon_all.jpg");
         Icon icon_user = new ImageIcon("main_icon/main_icon_user.jpg");
         Icon icon_search = new ImageIcon("main_icon/main_icon_search.jpg");
         tab.addTab("   ", icon_chat, plUser_msg);
-        //tab.addTab("   ", icon_all, plAll);
+        tab.addTab("   ", icon_all, plAll);
         tab.addTab("   ", icon_user, plOne);
         plSearch.setBackground(Color.WHITE);
         tab.addTab("   ", icon_search, plSearch);
@@ -201,6 +248,66 @@ class Customer {
         button.setBounds(2, 38, 266, 26);
         plSearch.add(button);
 
+        JButton AddGroup = new JButton("加入群组");
+        AddGroup.addActionListener(arg0 -> {
+            JSONObject js = new JSONObject();
+            js.put("type", "JoinGroup");
+            js.put("groupname", search.getText());
+            Control.connect.SendJSON(js);
+            JSONObject result = Control.connect.GetJSON();
+            String type = result.getString("type");
+            if (type.equals("JoinGroup")) {
+                String status = result.getString("status");
+                if (status.equals("success")) {
+                    JOptionPane.showMessageDialog(null, "已加入群组", "信息", JOptionPane.INFORMATION_MESSAGE);
+                    GetGroup();
+                } else if (status.equals("GroupNotExists")) {
+                    JOptionPane.showMessageDialog(null, "群组不存在", "错误", JOptionPane.ERROR_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(null, "服务器发生内部错误", "错误", JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(null, "服务器返回未知消息\n" + result.toString(), "错误", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        AddGroup.setBounds(2, 76, 266, 26);
+        plSearch.add(AddGroup);
+
+        JButton CreateGroup = new JButton("创建群组");
+        CreateGroup.addActionListener(arg0 -> {
+            try {
+                String groupname = JOptionPane.showInputDialog(null, "请输入群组号码");
+                String groupnickname = JOptionPane.showInputDialog(null, "请输入群组名称");
+                if (!groupname.trim().equals("") && !groupnickname.trim().equals("")) {
+                    JSONObject js = new JSONObject();
+                    js.put("type", "CreateGroup");
+                    js.put("groupname", groupname);
+                    js.put("groupnickname", encoder.encodeToString(groupnickname.getBytes("GBK")));
+                    Control.connect.SendJSON(js);
+                    JSONObject result = Control.connect.GetJSON();
+                    String type = result.getString("type");
+                    if (type.equals("CreateGroup")) {
+                        String status = result.getString("status");
+                        if (status.equals("success")) {
+                            JOptionPane.showMessageDialog(null, "已创建群组", "信息", JOptionPane.INFORMATION_MESSAGE);
+                        } else if (status.equals("duplicated")) {
+                            JOptionPane.showMessageDialog(null, "群组号码已被使用，不能再次创建！", "错误", JOptionPane.ERROR_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(null, "服务器发生内部错误", "错误", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(null, "服务器返回未知消息\n" + result.toString(), "错误", JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(null, "请将信息填写完整！", "错误", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        CreateGroup.setBounds(2, 114, 266, 26);
+        plSearch.add(CreateGroup);
+
 
         tab.addChangeListener(arg0 -> {
             int index = tab.getSelectedIndex();
@@ -219,13 +326,13 @@ class Customer {
         userList = new JList(listModel);
         userList.setBackground(Color.WHITE);
         userList.setLocation(0, 0);
-        userList.setSize(306, 565);
+        userList.setSize(306, 595);
         userList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         userList.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
                     String username = usernames.get(userList.getSelectedValue());
-                    new ChatWindow(username);
+                    new ChatWindow(username, false);
                 }
                 if (e.getButton() == MouseEvent.BUTTON3) {
                     if (userList.getSelectedValue() == null) {
@@ -247,9 +354,58 @@ class Customer {
         });
         js = new JScrollPane(userList);
         js.setLocation(0, 0);
-        js.setSize(269, 523);
+        js.setSize(269, 553);
         plUser_msg.add(js);
+    }
 
+
+    private void GroupView() {
+        grouplistmodel = new DefaultListModel();
+        groupList = new JList(grouplistmodel);
+        groupList.setBackground(Color.WHITE);
+        groupList.setLocation(0, 0);
+        groupList.setSize(306, 595);
+        groupList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        groupList.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
+                    String groupname = groupnames.get(groupList.getSelectedValue());
+                    new ChatWindow(groupname, true);
+                }
+                if (e.getButton() == MouseEvent.BUTTON3) {
+                    if (groupList.getSelectedValue() == null) {
+                        return;
+                    }
+                    String groupname = groupnames.get(groupList.getSelectedValue());
+                    Object[] option = {"是", "否"};
+                    int op = JOptionPane.showOptionDialog(null, "要离开群组 " + groupname + " 吗？", "提示", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, option, option[1]);
+                    if (op == 0) {
+                        JSONObject js = new JSONObject();
+                        js.put("type", "LeaveGroup");
+                        js.put("groupname", groupname);
+                        Control.connect.SendJSON(js);
+                        JSONObject result = Control.connect.GetJSON();
+                        String type = result.getString("type");
+                        if (type.equals("LeaveGroup")) {
+                            String status = result.getString("status");
+                            if (status.equals("success")) {
+                                JOptionPane.showMessageDialog(null, "已离开群组", "提醒", JOptionPane.INFORMATION_MESSAGE);
+                            } else {
+                                JOptionPane.showMessageDialog(null, "服务器发生内部错误", "错误", JOptionPane.ERROR_MESSAGE);
+                            }
+                        } else {
+                            JOptionPane.showMessageDialog(null, "服务器返回未知消息\n" + result.toString(), "错误", JOptionPane.ERROR_MESSAGE);
+                        }
+                        GetGroup();
+                    }
+                }
+
+            }
+        });
+        js = new JScrollPane(groupList);
+        js.setLocation(0, 0);
+        js.setSize(269, 553);
+        plAll.add(js);
     }
 
     private void mini() {
@@ -296,10 +452,21 @@ class Customer {
         System.exit(0);
     }
 
+
+    void GetGroupTextMessage(JSONObject json) {
+        String fromGroup = json.getString("fromGroup");
+        if (!groupwindows.containsKey(fromGroup)) {
+            new ChatWindow(fromGroup, true);
+        }
+        groupwindows.get(fromGroup).GetFocus();
+        groupwindows.get(fromGroup).AddGroupTextMessage(json);
+    }
+
+
     void GetTextMessage(JSONObject json) {
         String from = json.getString("from");
         if (!windows.containsKey(from)) {
-            ChatWindow cw = new ChatWindow(from);
+            new ChatWindow(from, false);
         }
         windows.get(from).GetFocus();
         windows.get(from).AddTextMessage(json);
@@ -308,7 +475,7 @@ class Customer {
     void GetShakeMessage(JSONObject json) {
         String from = json.getString("from");
         if (!windows.containsKey(from)) {
-            ChatWindow cw = new ChatWindow(from);
+            new ChatWindow(from, false);
         }
         windows.get(from).GetFocus();
         windows.get(from).ShakeWindow();
@@ -446,8 +613,94 @@ class Customer {
                 }
 
             } else {
+                JOptionPane.showMessageDialog(null, "服务器返回未知消息\n" + result1.toString(), "错误", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    void GetGroup() {
+        grouplistmodel.removeAllElements();
+        groupnames.clear();
+        JSONObject js = new JSONObject();
+        js.put("type", "GetGroup");
+        Control.connect.SendJSON(js);
+        JSONObject result = Control.connect.GetJSON();
+        int count = Integer.parseInt(result.getString("count"));
+        for (int i = 0; i < count; i++) {
+            String target = result.getString("groupname" + i);
+            JSONObject json = new JSONObject();
+            json.put("type", "GetGroupNickname");
+            json.put("groupname", target);
+            Control.connect.SendJSON(json);
+            JSONObject result1 = Control.connect.GetJSON();
+            String type = result1.getString("type");
+            if (type.equals("GetGroupNickname")) {
+                try {
+                    grouplistmodel.addElement(new String(decoder.decode(result1.getString("GroupNickname")), "GBK") + "(" + target + ")");
+                    groupnames.put(new String(decoder.decode(result1.getString("GroupNickname")), "GBK") + "(" + target + ")", target);
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+
+            } else {
+                JOptionPane.showMessageDialog(null, "服务器返回未知消息\n" + result1.toString(), "错误", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    void FileRequest(JSONObject json) {
+        try {
+            String from = json.getString("from");
+            String filename = json.getString("filename");
+            long length = Long.parseLong(json.getString("length"));
+            String size;
+            DecimalFormat df = new DecimalFormat("#0.00");
+            double len = length;
+            if (len >= 1024) {
+                if (len >= 1024 * 1024) {
+                    if (len >= 1024 * 1024 * 1024) {
+                        len /= (1024 * 1024 * 1024);
+                        size = df.format(len) + "GB";
+                    } else {
+                        len /= (1024 * 1024);
+                        size = df.format(len) + "MB";
+                    }
+                } else {
+                    len /= 1024;
+                    size = df.format(len) + "KB";
+                }
+            } else {
+                size = df.format(len) + "B";
+            }
+            JSONObject js = new JSONObject();
+            js.put("type", "GetInfo");
+            js.put("username", from);
+            Control.connect.SendJSON(js);
+            JSONObject result = Control.connect.GetJSON();
+            String type = result.getString("type");
+            if (type.equals("GetInfo")) {
+                String nickname = new String(decoder.decode(result.getString("nickname")), "GBK");
+                Object[] option = {"是", "否"};
+                int op = JOptionPane.showOptionDialog(null, nickname + "(" + from + ") 想要给您发送文件" + new String(decoder.decode(filename), "GBK") + "\n文件大小：" + size + "\n请问您是否要接收该文件？", "文件传输", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[0]);
+                JSONObject result1 = new JSONObject();
+                result1.put("type", "FileRequest");
+                result1.put("filename", filename);
+                if (op == 0) {
+                    result1.put("status", "accepted");
+                    JFileChooser jfc = new JFileChooser();
+                    jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                    jfc.showSaveDialog(null);
+                    File file = jfc.getSelectedFile();
+                    new Thread(new FileRecv(file, length)).start();
+                } else {
+                    result1.put("status", "declined");
+                }
+                Control.connect.SendJSON(result1);
+            } else {
                 JOptionPane.showMessageDialog(null, "服务器返回未知消息\n" + result.toString(), "错误", JOptionPane.ERROR_MESSAGE);
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
     }

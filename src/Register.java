@@ -29,7 +29,7 @@ class Register {
         JLabel label_2 = new JLabel("ÇëÊäÈëÇ©Ãû£º");
         label_2.setBounds(79, 144, 98, 15);
 
-
+        jframe.setLocationRelativeTo(null);
         JButton button = new JButton("×¢²á");//×¢²á°´Å¥
         button.setBounds(79, 286, 214, 31);
         jframe.getContentPane().add(button);

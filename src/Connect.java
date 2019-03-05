@@ -1,5 +1,6 @@
 import net.sf.json.JSONObject;
 
+import javax.swing.*;
 import java.io.*;
 import java.net.Socket;
 
@@ -39,6 +40,8 @@ class Connect extends Thread {
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("连接断开");
+                JOptionPane.showMessageDialog(null, "服务器断开连接", "错误", JOptionPane.ERROR_MESSAGE);
+                System.exit(-101);
                 break;
             }
         }
@@ -58,6 +61,9 @@ class Connect extends Thread {
                 case "ShakeMessage":
                     ShakeMessage(json);
                     break;
+                case "GroupTextMessage":
+                    GroupTextMessage(json);
+                    break;
                 case "AddRequest":
                     AddRequest(json);
                     break;
@@ -69,6 +75,9 @@ class Connect extends Thread {
                     break;
                 case "WasDeleted":
                     WasDeleted(json);
+                    break;
+                case "FileRequest":
+                    FileRequest(json);
                     break;
                 default:
                     System.out.println("接收到未知消息类型 ---- " + type);
@@ -117,5 +126,13 @@ class Connect extends Thread {
 
     private synchronized void WasDeleted(JSONObject json) {
         Control.customer.GetWasDeleted(json);
+    }
+
+    private synchronized void GroupTextMessage(JSONObject json) {
+        Control.customer.GetGroupTextMessage(json);
+    }
+
+    private synchronized void FileRequest(JSONObject json) {
+        Control.customer.FileRequest(json);
     }
 }
