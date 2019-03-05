@@ -70,9 +70,9 @@ class Customer {
                 DataInputStream dis = new DataInputStream(FileRecv.getInputStream());
                 DataOutputStream dos = new DataOutputStream(new FileOutputStream(file));
                 byte[] buffer = new byte[Settings.BUFFER_SIZE];
+                long recved = 0;
                 while (true) {
                     int read;
-                    long recved = 0;
                     read = dis.read(buffer);
                     if (read == -1) {
                         break;
@@ -80,7 +80,7 @@ class Customer {
                     dos.write(buffer, 0, read);
                     dos.flush();
                     recved += read;
-                    bar.setValue((int) ((recved / length) * 100));
+                    bar.setValue((int) (recved * 100 / length));
                 }
                 dis.close();
                 dos.close();

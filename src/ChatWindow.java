@@ -60,8 +60,8 @@ class ChatWindow {
                 DataInputStream dis = new DataInputStream(new FileInputStream(file));
                 long max = file.length();
                 byte[] buffer = new byte[Settings.BUFFER_SIZE];
+                long sent = 0;
                 while (true) {
-                    long sent = 0;
                     int read;
                     read = dis.read(buffer);
                     if (read == -1) {
@@ -70,7 +70,7 @@ class ChatWindow {
                     dos.write(buffer, 0, read);
                     dos.flush();
                     sent += read;
-                    bar.setValue((int) ((sent / max) * 100));
+                    bar.setValue((int) (sent * 100 / max));
                 }
                 dis.close();
                 dos.close();
